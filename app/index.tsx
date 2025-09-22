@@ -3,12 +3,15 @@ import { View, Text, FlatList, TouchableOpacity, StyleSheet, useColorScheme } fr
 import { Ionicons } from "@expo/vector-icons";
 import * as NavigationBar from "expo-navigation-bar";
 import { useNavigation } from "@react-navigation/native";
+import { useTheme } from "./theme_controller";
+import Navbar from "./Navbar";
 
 const data = [
   { id: "1", title: "Equações Básicas", description: "Resolva expressões simples", icon: "calculator" },
   { id: "2", title: "Desafio Diário", description: "Resolva 5 problemas em 3 min", icon: "flash" },
   { id: "3", title: "Novo Conteúdo!", description: "Frações e decimais desbloqueados", icon: "star" },
 ];
+
 
 function useHideAndroidNavBar() {
   useEffect(() => {
@@ -18,12 +21,8 @@ function useHideAndroidNavBar() {
 }
 
 export default function HomeScreen() {
-  const colorScheme = useColorScheme();
-  const [theme, setTheme] = useState(colorScheme === "dark" ? "dark" : "light");
+  const { theme } = useTheme();
 
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
   const navigation = useNavigation();
 
   useEffect(() => {
@@ -46,9 +45,7 @@ export default function HomeScreen() {
     <View style={[styles.container, theme === "dark" && { backgroundColor: "#18181b" }]}> 
       <View style={styles.headerRow}>
         <Text style={[styles.header, theme === "dark" && { color: "#fbbf24" }]}>Início</Text>
-        <TouchableOpacity style={styles.themeButton} onPress={toggleTheme}>
-          <Ionicons name={theme === "dark" ? "sunny" : "moon"} size={22} color={theme === "dark" ? "#fbbf24" : "#111827"} />
-        </TouchableOpacity>
+        
       </View>
 
       <FlatList
@@ -58,32 +55,7 @@ export default function HomeScreen() {
         contentContainerStyle={styles.list}
       />
 
-      <View style={[styles.navbar, theme === "dark" && { backgroundColor: "#27272a", borderTopColor: "#52525b" }]}> 
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="home" size={24} color={theme === "dark" ? "#fbbf24" : "#3B82F6"} />
-          <Text style={[styles.navText, theme === "dark" && { color: "#fbbf24" }]}>Início</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="book" size={24} color={theme === "dark" ? "#a1a1aa" : "#6B7280"} />
-          <Text style={[styles.navText, theme === "dark" && { color: "#a1a1aa" }]}>Aprender</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="trophy" size={24} color={theme === "dark" ? "#a1a1aa" : "#6B7280"} />
-          <Text style={[styles.navText, theme === "dark" && { color: "#a1a1aa" }]}>Turma</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="flag" size={24} color={theme === "dark" ? "#a1a1aa" : "#6B7280"} />
-          <Text style={[styles.navText, theme === "dark" && { color: "#a1a1aa" }]}>Desafios</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.navItem}>
-          <Ionicons name="person" size={24} color={theme === "dark" ? "#a1a1aa" : "#6B7280"} />
-          <Text style={[styles.navText, theme === "dark" && { color: "#a1a1aa" }]}>Perfil</Text>
-        </TouchableOpacity>
-      </View>
+      <Navbar active="home" />
     </View>
   );
 }
