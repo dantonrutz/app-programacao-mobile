@@ -1,125 +1,124 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, useColorScheme } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
-import * as NavigationBar from "expo-navigation-bar";
-import { useNavigation } from "@react-navigation/native";
-import { useTheme } from "./theme_controller";
-import Navbar from "./Navbar";
+import { useAuth } from "@/provider/AuthProvider";
+import { LinearGradient } from 'expo-linear-gradient';
+import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const data = [
-  { id: "1", title: "Equações Básicas", description: "Resolva expressões simples", icon: "calculator" },
-  { id: "2", title: "Desafio Diário", description: "Resolva 5 problemas em 3 min", icon: "flash" },
-  { id: "3", title: "Novo Conteúdo!", description: "Frações e decimais desbloqueados", icon: "star" },
-];
+export default function Index()  {
+  const  { signIn  }  =  useAuth() ;
 
+  return  (
+    <SafeAreaView style={styles.container}>
+      <LinearGradient
+        colors={['#7C3AED', '#3B82F6']}
+        style={styles.gradient}
+      >
+        <View style={styles.content}>
+          <Image 
+            source={require('../assets/images/capii.png')} 
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          
+          <Text style={styles.title}>Bem-vindo</Text>
+          <Text style={styles.subtitle}>
+            Entre para começar sua jornada de aprendizado
+          </Text>
 
-function useHideAndroidNavBar() {
-  useEffect(() => {
-    NavigationBar.setVisibilityAsync("hidden");
-    NavigationBar.setBehaviorAsync("overlay-swipe");
-  }, []);
-}
+          <TouchableOpacity 
+            style={styles.googleButton}
+            onPress={signIn}
+            activeOpacity={0.8}
+          >
+            <Image 
+              source={require('../assets/images/google.webp')} 
+              style={styles.googleIcon}
+            />
+            <Text style={styles.buttonText}>Continuar com Google</Text>
+          </TouchableOpacity>
 
-export default function HomeScreen() {
-  const { theme } = useTheme();
-
-  const navigation = useNavigation();
-
-  useEffect(() => {
-    navigation.setOptions({ headerShown: false });
-  }, [navigation]);
-
-  useHideAndroidNavBar();
-
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card}>
-      <Ionicons name={item.icon} size={28} color={theme === "dark" ? "#fbbf24" : "#3B82F6"} style={styles.cardIcon} />
-      <View>
-        <Text style={styles.cardTitle}>{item.title}</Text>
-        <Text style={styles.cardDesc}>{item.description}</Text>
-      </View>
-    </TouchableOpacity>
-  );
-
-  return (
-    <View style={[styles.container, theme === "dark" && { backgroundColor: "#18181b" }]}> 
-      <View style={styles.headerRow}>
-        <Text style={[styles.header, theme === "dark" && { color: "#fbbf24" }]}>Início</Text>
-        
-      </View>
-
-      <FlatList
-        data={data}
-        keyExtractor={(item) => item.id}
-        renderItem={renderItem}
-        contentContainerStyle={styles.list}
-      />
-
-      <Navbar active="home" />
-    </View>
-  );
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>
+              Ao continuar, você concorda com nossos
+            </Text>
+            <TouchableOpacity>
+              <Text style={styles.link}>Termos de Serviço</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </LinearGradient>
+    </SafeAreaView>
+  )
 }
 
 const styles = StyleSheet.create({
-  headerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 50,
-    marginBottom: 20,
-    marginHorizontal: 20,
+  container: {
+    flex: 1,
   },
-  container: { flex: 1, backgroundColor: "#F9FAFB" },
-  themeButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#e5e7eb",
-    borderRadius: 20,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+  gradient: {
+    flex: 1,
   },
-  themeButtonText: {
-    marginLeft: 6,
-    fontSize: 14,
-    color: "#111827",
-    fontWeight: "bold",
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 20,
   },
-  header: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#111827",
-    marginTop: 0,
-    marginBottom: 0,
-    marginLeft: 0,
+  logo: {
+    width: 140,
+    height: 140,
+    marginBottom: 40,
   },
-  list: { paddingHorizontal: 20, paddingBottom: 80 },
-  card: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    marginBottom: 12,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
+  title: {
+    fontSize: 32,
+    fontWeight: 'bold',
+    color: '#FFFFFF',
+    marginBottom: 10,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#FFFFFF',
+    textAlign: 'center',
+    marginBottom: 40,
+    opacity: 0.8,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 50,
     elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  cardIcon: { marginRight: 12 },
-  cardTitle: { fontSize: 16, fontWeight: "bold", color: "#111827" },
-  cardDesc: { fontSize: 14, color: "#6B7280" },
-  navbar: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    paddingVertical: 10,
-    borderTopWidth: 1,
-    borderTopColor: "#E5E7EB",
-    position: "absolute",
-    bottom: 0,
-    width: "100%",
+  googleIcon: {
+    width: 24,
+    height: 24,
+    marginRight: 12,
   },
-  navItem: { alignItems: "center" },
-  navText: { fontSize: 12, color: "#6B7280", marginTop: 2 },
+  buttonText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  footer: {
+    position: 'relative',
+    alignItems: 'center',
+    top: 60,
+  },
+  footerText: {
+    color: '#FFFFFF',
+    opacity: 0.8,
+    marginBottom: 4,
+  },
+  link: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    textDecorationLine: 'underline',
+  },
 });
