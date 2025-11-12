@@ -45,7 +45,6 @@ export default function Inicio() {
 
         {/* Bloco do nível */}
         <View style={styles.levelBox}>
-          <Text style={styles.levelTitle}>Nível {user?.level ?? 3}</Text>
           <View style={styles.progressBar}>
             <Animated.View style={[styles.progressFill, { width: progressWidth }]} />
           </View>

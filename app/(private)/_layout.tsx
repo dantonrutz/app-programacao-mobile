@@ -1,26 +1,40 @@
+import { useAuth } from "@/provider/AuthProvider";
 import { useTheme } from "@/provider/ThemeProvider";
+import { UserInterface } from "@/types/User";
 import { Ionicons } from "@expo/vector-icons";
 import MaskedView from '@react-native-masked-view/masked-view';
 import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { Tabs, usePathname, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 
 // --- Itens do menu ---
 const MENU_ITEMS = [
   { label: "Início", route: "/Inicio", icon: "home", key: "home", colors: ['#3B82F6', '#3B82F6'] },
   { label: "Aprender", route: "/Aprender", icon: "book", key: "aprender", colors: ['#7C3AED', '#7C3AED'] },
-  { label: "Turma", route: "/Turma", icon: "trophy", key: "turma", protected: true, colors: ['#EC4899', '#EC4899'] },
+  { label: "Turma", route: "/Turma", icon: "trophy", key: "turma", colors: ['#EC4899', '#EC4899'] },
   { label: "Loja", route: "/Loja", icon: "bag", key: "loja", colors: ['#FCD34D', '#FCD34D'] },
+  { label: "Criar perguntas", route: "/CriarPerguntas", icon: "school", key: "ensinar", teacherOnly: true, colors: ['#10B981', '#10B981'] },
   { label: "Perfil", route: "/Perfil", icon: "person", key: "perfil", colors: ['#F87171', '#F87171'] },
 ];
 
 export default function PrivateLayout() {
+  const { getUser } = useAuth();
+  const [user, setUser] = useState<UserInterface | null>(null);
   const { theme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
 
-  const isAdmin = true; // Pode vir do contexto de auth
+  useEffect(() => {
+    const fetchUser = async () => {
+      const userData = await getUser();
+      setUser(userData);
+    };
+    fetchUser();
+  }, [getUser]);
+
+  const isTeacher = user?.roles.includes('TEACHER') || false;
   const activeKey = MENU_ITEMS.find(item => pathname.includes(item.route))?.key || "home";
 
   const defaultInactiveColor = theme === "dark" ? "#9CA3AF" : "#6B7280";
@@ -34,8 +48,8 @@ export default function PrivateLayout() {
     >
       <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}>
         {MENU_ITEMS.map(item =>
-          item.protected ? (
-            <Tabs.Protected key={item.key} guard={isAdmin}>
+          item.teacherOnly ? (
+            <Tabs.Protected key={item.key} guard={isTeacher}>
               <Tabs.Screen name={item.route.replace("/", "")} />
             </Tabs.Protected>
           ) : (
@@ -47,7 +61,7 @@ export default function PrivateLayout() {
       {/* Navbar com vidro */}
       <View style={[styles.navbar, { marginBottom: Platform.OS !== "ios" ? 46 : 0 }]}>
         {MENU_ITEMS.map(item => {
-          if (item.protected && !isAdmin) return null;
+          if (item.teacherOnly && !isTeacher) return null;
 
           const isActive = activeKey === item.key;
           const iconName = isActive ? item.icon : `${item.icon}-outline`;

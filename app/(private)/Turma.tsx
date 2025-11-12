@@ -1,49 +1,63 @@
+import { useApi } from '@/hooks/useApi';
+import { ClassroomInterface } from '@/types/Classroom';
 import { LinearGradient } from 'expo-linear-gradient';
-import { FlatList, SafeAreaView, StyleSheet, Text, View } from "react-native";
-
-const rankingData = [
-  { id: '1', name: 'Danton', score: 1250 },
-  { id: '2', name: 'Lucas', score: 1100 },
-  { id: '3', name: 'Mariana', score: 980 },
-  { id: '4', name: 'Carla', score: 870 },
-  { id: '5', name: 'Rafaela', score: 800 },
-];
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Turma() {
-  const renderItem = ({ item, index }: any) => {
-    const medal =
-      index === 0 ? '🥇' :
-      index === 1 ? '🥈' :
-      index === 2 ? '🥉' : '';
+  const { get } = useApi();
+  const [classrooms, setClassrooms] = useState<ClassroomInterface[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    return (
-      <View style={styles.rankingItem}>
-        <Text style={styles.position}>{index + 1}º</Text>
-        <Text style={styles.name}>
-          {medal ? `${medal} ${item.name}` : item.name}
-        </Text>
-        <Text style={styles.score}>{item.score} XP</Text>
-      </View>
-    );
-  };
+  const fetchClassrooms = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await get('/classroom/me');
+      setClassrooms(data || []);
+    } catch (e: any) {
+      console.log('Erro ao carregar turmas:', e.message || e);
+    } finally {
+      setLoading(false);
+    }
+  }, [get]);
+
+  useEffect(() => {
+    fetchClassrooms();
+  }, [fetchClassrooms, get]);
+
+  const renderItem = ({ item }: any) => (
+    <View style={styles.classItem}>
+      <Text style={styles.className}>{item.name}</Text>
+    </View>
+  );
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#8B5CF6', '#EC4899']}
-        style={styles.gradient}
-      >
+      <LinearGradient colors={['#8B5CF6', '#EC4899']} style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.greeting}>Ranking da Turma</Text>
-          <Text style={styles.subtitle}>Veja sua posição e pontuação total</Text>
+          <Text style={styles.greeting}>Minhas Turmas</Text>
+          <Text style={styles.subtitle}>Veja as turmas que você participa</Text>
+
+          <TouchableOpacity style={styles.refreshButton} onPress={fetchClassrooms} activeOpacity={0.8}>
+            <Text style={styles.refreshText}>Atualizar</Text>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.content}>
-          <FlatList
-            data={rankingData}
-            renderItem={renderItem}
-            keyExtractor={(item) => item.id}
-          />
+          {loading ? (
+            <ActivityIndicator size="large" color="#FFF" />
+          ) : (
+            <FlatList
+              data={classrooms}
+              renderItem={renderItem}
+              keyExtractor={(item) => item.id}
+              ListEmptyComponent={
+                <Text style={{ color: '#FFF', textAlign: 'center', marginTop: 20 }}>
+                  Nenhuma turma encontrada
+                </Text>
+              }
+            />
+          )}
         </View>
       </LinearGradient>
     </SafeAreaView>
@@ -51,57 +65,31 @@ export default function Turma() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
+  container: { flex: 1 },
+  gradient: { flex: 1, padding: 20 },
+  header: { marginTop: 20, marginBottom: 30 },
+  greeting: { fontSize: 32, fontWeight: 'bold', color: '#FFFFFF', marginBottom: 8 },
+  subtitle: { fontSize: 18, color: '#FFFFFF', opacity: 0.9 },
+  refreshButton: {
+    marginTop: 12,
+    alignSelf: 'flex-start',
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    borderRadius: 12,
   },
-  gradient: {
-    flex: 1,
-    padding: 20,
+  refreshText: {
+    color: '#8B5CF6',
+    fontWeight: '600',
+    fontSize: 16,
   },
-  header: {
-    marginTop: 20,
-    marginBottom: 30,
-  },
-  greeting: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 18,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  content: {
-    flex: 1,
-  },
-  rankingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+  content: { flex: 1 },
+  classItem: {
     backgroundColor: 'rgba(255,255,255,0.1)',
     paddingVertical: 14,
     paddingHorizontal: 18,
     borderRadius: 12,
     marginBottom: 12,
   },
-  position: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#FFF',
-    width: 40,
-  },
-  name: {
-    fontSize: 18,
-    color: '#FFF',
-    flex: 1,
-  },
-  score: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFF',
-    textAlign: 'right',
-    width: 80,
-  },
+  className: { fontSize: 18, color: '#FFF' },
 });

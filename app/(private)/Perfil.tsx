@@ -1,133 +1,137 @@
+import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/provider/AuthProvider';
 import { useTheme } from '@/provider/ThemeProvider';
 import { UserInterface } from '@/types/User';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { Image, SafeAreaView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Image, SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Perfil() {
-  const { signOut, getUser } = useAuth();
+  const { signOut } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const [user, setUser] = useState<UserInterface | null>(null);
+  const { get } = useApi();
 
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await getUser();
-      setUser(userData);
+      try {
+        const data: UserInterface = await get('/user/me');
+        setUser(data);
+      } catch (e: any) {
+        Alert.alert('Erro', e.message || 'Não foi possível carregar os dados do usuário');
+      }
     };
-
     fetchUser();
-  }, [getUser]);
+  }, [get]);
 
   return (
     <SafeAreaView style={styles.container}>
-      <LinearGradient
-        colors={['#F87171', '#FCA5A5']}
-        style={styles.gradient}
-      >
-        <View style={styles.content}>
-          <View style={styles.profileSection}>
-            <Image 
-              source={{ uri: user?.image }} 
-              style={styles.avatar}
-            />
-            <Text style={styles.name}>{user?.name}</Text>
-            <Text style={styles.email}>{user?.email}</Text>
-          </View>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        {/* Header com gradiente */}
+        <LinearGradient colors={['#F87171', '#FCA5A5']} style={styles.header}>
+          <Text style={styles.headerText}>Meu Perfil</Text>
+        </LinearGradient>
 
-          <View style={styles.buttonGroup}>
-            <TouchableOpacity 
-              style={styles.themeButton}
-              onPress={toggleTheme}
-              activeOpacity={0.8}
-            >
-              <Ionicons 
-                name={theme === 'dark' ? 'sunny-outline' : 'moon-outline'} 
-                size={24} 
-                color="#6B7280" 
-              />
-              <Text style={styles.themeText}>
-                {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.signOutButton}
-              onPress={signOut}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="log-out-outline" size={24} color="#EF4444" />
-              <Text style={styles.signOutText}>Sair da conta</Text>
-            </TouchableOpacity>
+        {/* Cartão do usuário */}
+        <View style={styles.card}>
+          <Image
+            source={user?.image
+              ? { uri: user.image }
+              : require('../../assets/images/default.jpg')}
+            style={styles.avatar}
+          />
+          <Text style={styles.name}>{user?.name || 'Usuário'}</Text>
+          <Text style={styles.email}>{user?.email || '-'}</Text>
+          <View style={styles.roleContainer}>
+            <Text style={styles.roleLabel}>Funções do usuário</Text>
+            <Text style={styles.roles}>{user?.roles.join(', ') || '-'}</Text>
           </View>
         </View>
-      </LinearGradient>
+
+        {/* Botões */}
+        <View style={styles.buttonGroup}>
+          <TouchableOpacity
+            style={styles.themeButton}
+            onPress={toggleTheme}
+            activeOpacity={0.8}
+          >
+            <Ionicons
+              name={theme === 'dark' ? 'sunny-outline' : 'moon-outline'}
+              size={24}
+              color="#6B7280"
+            />
+            <Text style={styles.themeText}>
+              {theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.signOutButton}
+            onPress={signOut}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={24} color="#EF4444" />
+            <Text style={styles.signOutText}>Sair da conta</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  gradient: {
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    padding: 20,
-    justifyContent: 'space-between',
-  },
-  profileSection: {
+  container: { flex: 1, backgroundColor: '#F3F4F6' },
+  scrollContent: { paddingBottom: 40 },
+
+  header: {
+    height: 180,
+    justifyContent: 'flex-end',
     alignItems: 'center',
-    marginTop: 60,
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+    paddingBottom: 20,
   },
-  avatar: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    borderWidth: 4,
-    borderColor: '#FFFFFF',
-    marginBottom: 20,
-  },
-  name: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#FFFFFF',
-    marginBottom: 8,
-  },
-  email: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    opacity: 0.9,
-  },
-  signOutButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+  headerText: { color: '#FFFFFF', fontSize: 28, fontWeight: 'bold' },
+
+  card: {
+    marginHorizontal: 20,
+    marginTop: -60,
     backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderRadius: 12,
+    borderRadius: 20,
+    alignItems: 'center',
+    paddingVertical: 30,
+    paddingHorizontal: 20,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
     elevation: 5,
   },
-  signOutText: {
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#EF4444',
+  avatar: { width: 100, height: 100, borderRadius: 50, marginBottom: 15 },
+  name: { fontSize: 22, fontWeight: 'bold', color: '#111827', marginBottom: 4 },
+  email: { fontSize: 16, color: '#6B7280', marginBottom: 2 },
+  roleContainer: {
+    alignItems: 'center',
+    marginTop: 8,
   },
-    buttonGroup: {
+  roleLabel: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontWeight: '500',
+    marginBottom: 2,
+  },
+  roles: {
+    fontSize: 14,
+    color: '#6B7280',
+  },
+
+  buttonGroup: {
+    marginTop: 30,
+    marginHorizontal: 20,
     gap: 12,
-    marginBottom: 20,
   },
+
   themeButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -136,18 +140,25 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
-  themeText: {
-    marginLeft: 10,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#6B7280',
+  themeText: { marginLeft: 10, fontSize: 16, fontWeight: '600', color: '#6B7280' },
+
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 3,
   },
+  signOutText: { marginLeft: 10, fontSize: 16, fontWeight: '600', color: '#EF4444' },
 });
