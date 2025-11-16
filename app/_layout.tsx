@@ -1,6 +1,12 @@
 import { AuthProvider, useAuth } from "@/provider/AuthProvider";
 import { ThemeProvider } from "@/provider/ThemeProvider";
 import { Stack } from "expo-router";
+import { LogBox } from "react-native";
+
+// Ignorar aviso de notificações remotas no Expo Go
+LogBox.ignoreLogs([
+  'expo-notifications: Android Push notifications (remote notifications) functionality provided by expo-notifications was removed from Expo Go',
+]);
 
 const InitialLayout = () => {
   const { isAuthenticated } = useAuth();
@@ -25,9 +31,9 @@ const InitialLayout = () => {
 }
 
 export default function RootLayout() {
-  return ( 
-      <AuthProvider>
-        <InitialLayout />
-      </AuthProvider>
+  return (
+    <AuthProvider>
+      <InitialLayout />
+    </AuthProvider>
   )
 }

@@ -1,4 +1,4 @@
-import { useAuth } from "@/provider/AuthProvider";
+import { useApi } from "@/hooks/useApi";
 import { useTheme } from "@/provider/ThemeProvider";
 import { UserInterface } from "@/types/User";
 import { Ionicons } from "@expo/vector-icons";
@@ -14,13 +14,13 @@ const MENU_ITEMS = [
   { label: "Início", route: "/Inicio", icon: "home", key: "home", colors: ['#3B82F6', '#3B82F6'] },
   { label: "Aprender", route: "/Aprender", icon: "book", key: "aprender", colors: ['#7C3AED', '#7C3AED'] },
   { label: "Turma", route: "/Turma", icon: "trophy", key: "turma", colors: ['#EC4899', '#EC4899'] },
-  { label: "Loja", route: "/Loja", icon: "bag", key: "loja", colors: ['#FCD34D', '#FCD34D'] },
-  { label: "Criar perguntas", route: "/CriarPerguntas", icon: "school", key: "ensinar", teacherOnly: true, colors: ['#10B981', '#10B981'] },
+  { label: "Loja", route: "/Loja", icon: "bag", key: "loja", colors: ['#FCD34D', '#FCD34D'], studentOnly: true },
+  { label: "Exercícios", route: "/Exercicios", icon: "pencil", key: "exercicios", teacherOnly: true, colors: ['#10B981', '#10B981'] },
   { label: "Perfil", route: "/Perfil", icon: "person", key: "perfil", colors: ['#F87171', '#F87171'] },
 ];
 
 export default function PrivateLayout() {
-  const { getUser } = useAuth();
+  const { get } = useApi();
   const [user, setUser] = useState<UserInterface | null>(null);
   const { theme } = useTheme();
   const pathname = usePathname();
@@ -28,17 +28,30 @@ export default function PrivateLayout() {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const userData = await getUser();
-      setUser(userData);
+      try {
+        const userData: UserInterface = await get('/user/me');
+        setUser(userData);
+      } catch (e: any) {
+        console.log('Erro ao buscar usuário:', e.message);
+      }
     };
     fetchUser();
-  }, [getUser]);
+  }, [get]);
 
   const isTeacher = user?.roles.includes('TEACHER') || false;
   const activeKey = MENU_ITEMS.find(item => pathname.includes(item.route))?.key || "home";
 
   const defaultInactiveColor = theme === "dark" ? "#9CA3AF" : "#6B7280";
   const backgroundColor = theme === "dark" ? "rgba(0,0,0,0.8)" : "rgba(245,245,245,0.8)";
+
+  // Redirecionar para a tela correta de Turma
+  const handleTurmaPress = () => {
+    if (isTeacher) {
+      router.push('/TurmaProfessor');
+    } else {
+      router.push('/Turma');
+    }
+  };
 
   return (
     <BlurView
@@ -47,21 +60,21 @@ export default function PrivateLayout() {
       style={[styles.container, { backgroundColor }]}
     >
       <Tabs screenOptions={{ headerShown: false, tabBarStyle: { display: "none" } }}>
-        {MENU_ITEMS.map(item =>
-          item.teacherOnly ? (
-            <Tabs.Protected key={item.key} guard={isTeacher}>
-              <Tabs.Screen name={item.route.replace("/", "")} />
-            </Tabs.Protected>
-          ) : (
+        {MENU_ITEMS.map(item => {
+          if (item.teacherOnly && !isTeacher) return null;
+          if (item.studentOnly && isTeacher) return null;
+
+          return (
             <Tabs.Screen key={item.key} name={item.route.replace("/", "")} />
-          )
-        )}
+          );
+        })}
       </Tabs>
 
       {/* Navbar com vidro */}
       <View style={[styles.navbar, { marginBottom: Platform.OS !== "ios" ? 46 : 0 }]}>
         {MENU_ITEMS.map(item => {
           if (item.teacherOnly && !isTeacher) return null;
+          if (item.studentOnly && isTeacher) return null;
 
           const isActive = activeKey === item.key;
           const iconName = isActive ? item.icon : `${item.icon}-outline`;
@@ -70,13 +83,19 @@ export default function PrivateLayout() {
             <Pressable
               key={item.key}
               style={styles.navItem}
-              onPress={() => router.push(item.route as any)}
+              onPress={() => {
+                if (item.key === 'turma') {
+                  handleTurmaPress();
+                } else {
+                  router.push(item.route as any);
+                }
+              }}
               android_ripple={{ color: 'rgba(0,0,0,0.1)', borderless: true }}
             >
               {isActive ? (
                 <MaskedView maskElement={<Ionicons name={iconName as any} size={24} color="black" />}>
                   <LinearGradient
-                    colors={item.colors as [string, string]} // força o TS aceitar
+                    colors={item.colors as [string, string]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 1 }}
                     style={{ width: 24, height: 24 }}
