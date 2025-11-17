@@ -4,7 +4,8 @@ import { useTheme } from '@/provider/ThemeProvider';
 import { UserInterface } from '@/types/User';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useEffect, useState } from 'react';
+import { useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -19,11 +20,33 @@ import {
     View,
 } from 'react-native';
 
+interface UserShort {
+    id: string;
+    name?: string;
+    email?: string;
+}
+
+interface Exercise {
+    id: string;
+    question: string;
+    options?: string[];
+    answer?: string;
+    theme?: string;
+    createdAt?: string;
+    authorId?: string;
+    classroomId?: string;
+}
+
 interface Classroom {
     id: string;
     name: string;
     code: string;
     teacherId: string;
+    teacher?: UserShort;
+    students?: UserShort[]; // sometimes empty in your sample
+    exercises?: Exercise[];
+    rankings?: Ranking[]; // optional
+    createdAt?: string;
 }
 
 interface Ranking {
@@ -34,8 +57,8 @@ interface Ranking {
     userId: string;
     user?: {
         id: string;
-        name: string;
-        email: string;
+        name?: string;
+        email?: string;
     };
 }
 
@@ -74,19 +97,41 @@ export default function TurmaProfessor() {
         }
     }, [userId]);
 
+    useFocusEffect(
+        useCallback(() => {
+            if (userId) {
+                fetchClassrooms();
+            }
+        }, [userId])
+    );
+
     const fetchClassrooms = async () => {
         try {
             setLoading(true);
+            // Pega todas as turmas
             const data: Classroom[] = await get('/classroom');
-            const myClassrooms = data.filter(c => c.teacherId === userId);
-            setClassrooms(myClassrooms);
 
-            // Carregar rankings para cada turma
+            // Filtra apenas as turmas do professor logado
+            const myClassrooms = data.filter(c => c.teacherId === userId);
+
+            // Garante que cada turma tenha array de exercises (mesmo que vazia)
+            const normalized = myClassrooms.map(c => ({
+                ...c,
+                exercises: c.exercises ?? [],
+                students: c.students ?? [],
+            }));
+
+            setClassrooms(normalized);
+
+            // Carregar rankings para cada turma (para listar alunos)
             const rankings: Ranking[] = await get('/ranking');
             const rankingsByClassroom: { [key: string]: Ranking[] } = {};
 
-            myClassrooms.forEach(classroom => {
-                rankingsByClassroom[classroom.id] = rankings.filter(r => r.classroomId === classroom.id);
+            normalized.forEach(classroom => {
+                rankingsByClassroom[classroom.id] = rankings
+                    .filter(r => r.classroomId === classroom.id)
+                    // ordena por posição se quiser (opcional)
+                    .sort((a, b) => a.position - b.position);
             });
 
             setClassroomRankings(rankingsByClassroom);
@@ -141,6 +186,7 @@ export default function TurmaProfessor() {
         }
     };
 
+    // === Helpers para alunos/rankings ===
     const getStudentCount = (classroomId: string): number => {
         return classroomRankings[classroomId]?.length ?? 0;
     };
@@ -149,10 +195,22 @@ export default function TurmaProfessor() {
         return classroomRankings[classroomId] ?? [];
     };
 
+    // === Helpers para exercises (Opção A) ===
+    const getExerciseCount = (classroom: Classroom): number => {
+        return (classroom.exercises ?? []).length;
+    };
+
+    const getClassroomExercises = (classroom: Classroom): Exercise[] => {
+        return classroom.exercises ?? [];
+    };
+
+    // Theme styles
     const backgroundColor = theme === 'dark' ? '#1F2937' : '#F3F4F6';
     const textColor = theme === 'dark' ? '#FFFFFF' : '#111827';
     const cardBg = theme === 'dark' ? '#374151' : '#FFFFFF';
     const inputBg = theme === 'dark' ? '#4B5563' : '#E5E7EB';
+    const dividerColor = theme === 'dark' ? '#4B5563' : '#E5E7EB';
+    const metaColor = '#9CA3AF';
 
     return (
         <SafeAreaView style={[styles.container, { backgroundColor }]}>
@@ -167,11 +225,11 @@ export default function TurmaProfessor() {
                 </View>
             ) : classrooms.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Ionicons name="school-outline" size={64} color="#9CA3AF" />
+                    <Ionicons name="school-outline" size={64} color={metaColor} />
                     <Text style={[styles.emptyText, { color: textColor }]}>
                         Nenhuma turma criada ainda
                     </Text>
-                    <Text style={[styles.emptySubtext, { color: '#9CA3AF' }]}>
+                    <Text style={[styles.emptySubtext, { color: metaColor }]}>
                         Comece criando sua primeira turma
                     </Text>
                 </View>
@@ -183,6 +241,8 @@ export default function TurmaProfessor() {
                     renderItem={({ item }) => {
                         const students = getClassroomStudents(item.id);
                         const studentCount = getStudentCount(item.id);
+                        const exerciseCount = getExerciseCount(item);
+                        const exercises = getClassroomExercises(item);
 
                         return (
                             <View style={[styles.card, { backgroundColor: cardBg }]}>
@@ -197,29 +257,39 @@ export default function TurmaProfessor() {
                                     </View>
                                 </View>
 
-                                <View style={styles.statsContainer}>
-                                    <View style={styles.statItem}>
-                                        <Ionicons name="people" size={20} color="#EC4899" />
-                                        <Text style={[styles.statText, { color: textColor }]}>
-                                            {studentCount} {studentCount === 1 ? 'aluno' : 'alunos'}
-                                        </Text>
+                                <View style={[styles.statsContainer, { borderBottomColor: dividerColor }]}>
+                                    <View style={styles.statRow}>
+                                        <View style={styles.statItem}>
+                                            <Ionicons name="people" size={20} color="#EC4899" />
+                                            <Text style={[styles.statText, { color: textColor }]}>
+                                                {studentCount} {studentCount === 1 ? 'aluno' : 'alunos'}
+                                            </Text>
+                                        </View>
+
+                                        <View style={styles.statItem}>
+                                            <Ionicons name="reader" size={20} color="#EC4899" />
+                                            <Text style={[styles.statText, { color: textColor }]}>
+                                                {exerciseCount} {exerciseCount === 1 ? 'exercício' : 'exercícios'}
+                                            </Text>
+                                        </View>
                                     </View>
                                 </View>
 
+                                {/* Lista de alunos (ranking) */}
                                 {students.length > 0 ? (
-                                    <View style={styles.studentsContainer}>
-                                        <Text style={[styles.studentsLabel, { color: '#9CA3AF' }]}>Alunos:</Text>
+                                    <View style={[styles.studentsContainer, { borderTopColor: dividerColor }]}>
+                                        <Text style={[styles.studentsLabel, { color: metaColor }]}>Alunos:</Text>
                                         {students.map((ranking, idx) => (
-                                            <View key={idx} style={styles.studentItem}>
-                                                <Ionicons name="person-circle" size={20} color="#9CA3AF" />
+                                            <View key={ranking.id ?? idx} style={styles.studentItem}>
+                                                <Ionicons name="person-circle" size={20} color={metaColor} />
                                                 <View style={{ marginLeft: 8, flex: 1 }}>
                                                     <Text style={[styles.studentName, { color: textColor }]}>
                                                         {ranking.user?.name ?? 'Usuário desconhecido'}
                                                     </Text>
-                                                    <Text style={styles.studentEmail}>
+                                                    <Text style={[styles.studentEmail, { color: metaColor }]}>
                                                         {ranking.user?.email ?? 'email@example.com'}
                                                     </Text>
-                                                    <Text style={styles.studentScore}>
+                                                    <Text style={[styles.studentScore, { color: '#6B7280' }]}>
                                                         Pontos: {ranking.score} | Posição: #{ranking.position}
                                                     </Text>
                                                 </View>
@@ -227,10 +297,35 @@ export default function TurmaProfessor() {
                                         ))}
                                     </View>
                                 ) : (
-                                    <Text style={[styles.noStudentsText, { color: '#9CA3AF' }]}>
+                                    <Text style={[styles.noStudentsText, { color: metaColor }]}>
                                         Nenhum aluno registrado nesta turma
                                     </Text>
                                 )}
+
+                                {/* Lista de exercícios (Opção A) */}
+                                <View style={{ marginTop: 12 }}>
+                                    <Text style={[styles.studentsLabel, { color: metaColor }]}>Exercícios:</Text>
+
+                                    {exercises.length > 0 ? (
+                                        exercises.map((ex, idx) => (
+                                            <View key={ex.id ?? idx} style={styles.exerciseItem}>
+                                                <Ionicons name="document-text-outline" size={18} color={metaColor} />
+                                                <View style={{ marginLeft: 10, flex: 1 }}>
+                                                    <Text style={[styles.exerciseQuestion, { color: textColor }]} numberOfLines={2}>
+                                                        {ex.question}
+                                                    </Text>
+                                                    <Text style={[styles.exerciseMeta, { color: metaColor }]}>
+                                                        {ex.theme ? ex.theme.trim() : 'Sem tema'}
+                                                    </Text>
+                                                </View>
+                                            </View>
+                                        ))
+                                    ) : (
+                                        <Text style={[styles.noStudentsText, { color: metaColor }]}>
+                                            Nenhum exercício nesta turma
+                                        </Text>
+                                    )}
+                                </View>
                             </View>
                         );
                     }}
@@ -244,7 +339,7 @@ export default function TurmaProfessor() {
                 <Ionicons name="add" size={32} color="#FFFFFF" />
             </TouchableOpacity>
 
-            {/* Modal de criação */}
+            {/* Modal de criação de turma */}
             <Modal
                 visible={modalVisible}
                 animationType="slide"
@@ -252,7 +347,7 @@ export default function TurmaProfessor() {
             >
                 <SafeAreaView style={[styles.container, { backgroundColor }]}>
                     <ScrollView contentContainerStyle={styles.modalContent}>
-                        <View style={styles.modalHeader}>
+                        <View style={[styles.modalHeader, { borderBottomColor: dividerColor }]}>
                             <TouchableOpacity onPress={() => setModalVisible(false)}>
                                 <Ionicons name="close" size={28} color={textColor} />
                             </TouchableOpacity>
@@ -283,7 +378,7 @@ export default function TurmaProfessor() {
                                 onChangeText={(text) => setForm({ ...form, code: text.toUpperCase() })}
                                 maxLength={8}
                             />
-                            <Text style={styles.helpText}>
+                            <Text style={[styles.helpText, { color: metaColor }]}>
                                 Este código será compartilhado com alunos para entrar na turma
                             </Text>
 
@@ -317,7 +412,7 @@ const styles = StyleSheet.create({
     emptyText: { fontSize: 18, fontWeight: '600', marginTop: 16, textAlign: 'center' },
     emptySubtext: { fontSize: 14, marginTop: 8, textAlign: 'center' },
 
-    listContent: { padding: 16, paddingBottom: 100 },
+    listContent: { padding: 16, paddingBottom: 120 },
     card: {
         borderRadius: 12,
         padding: 16,
@@ -334,17 +429,27 @@ const styles = StyleSheet.create({
     codeBadge: { backgroundColor: '#FCE7F3', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start' },
     codeBadgeText: { fontSize: 12, color: '#BE185D', fontWeight: '600' },
 
-    statsContainer: { marginBottom: 12 },
+    statsContainer: { marginBottom: 12, paddingBottom: 8 },
+    statRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     statItem: { flexDirection: 'row', alignItems: 'center' },
     statText: { fontSize: 14, fontWeight: '600', marginLeft: 8 },
 
-    studentsContainer: { marginTop: 12, borderTopWidth: 1, borderTopColor: '#E5E7EB', paddingTop: 12 },
+    studentsContainer: { marginTop: 12, borderTopWidth: 1, paddingTop: 12 },
     studentsLabel: { fontSize: 12, fontWeight: '600', marginBottom: 8 },
     studentItem: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12, paddingLeft: 4 },
     studentName: { fontSize: 13, fontWeight: '500' },
-    studentEmail: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
-    studentScore: { fontSize: 10, color: '#6B7280', marginTop: 2 },
+    studentEmail: { fontSize: 11, marginTop: 2 },
+    studentScore: { fontSize: 10, marginTop: 2 },
     noStudentsText: { fontSize: 13, marginTop: 8, fontStyle: 'italic' },
+
+    exerciseItem: {
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        paddingVertical: 10,
+    },
+    exerciseQuestion: { fontSize: 13, fontWeight: '600' },
+    exerciseMeta: { fontSize: 11, marginTop: 4 },
+    exerciseAnswer: { fontSize: 12, marginTop: 4 },
 
     fab: {
         position: 'absolute',
@@ -371,7 +476,6 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 16,
         borderBottomWidth: 1,
-        borderBottomColor: '#E5E7EB',
     },
     modalTitle: { fontSize: 20, fontWeight: '600' },
 
@@ -385,7 +489,6 @@ const styles = StyleSheet.create({
     },
     helpText: {
         fontSize: 12,
-        color: '#9CA3AF',
         marginBottom: 24,
         fontStyle: 'italic',
     },

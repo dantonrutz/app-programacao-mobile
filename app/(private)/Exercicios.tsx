@@ -1,8 +1,10 @@
 import { useApi } from '@/hooks/useApi';
 import { useAuth } from '@/provider/AuthProvider';
 import { useTheme } from '@/provider/ThemeProvider';
+import { ClassroomInterface, ExerciseInterface } from '@/types';
 import { UserInterface } from '@/types/User';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import {
@@ -19,21 +21,12 @@ import {
     View,
 } from 'react-native';
 
-interface Exercise {
-    id: string;
-    question: string;
-    options: string[];
-    answer: string;
-    theme: string;
-    authorId: string;
-    classroomId?: number;
-}
-
 export default function Exercicios() {
     const { post, get, put, delete: deleteExercise } = useApi();
     const { theme } = useTheme();
     const { getUser } = useAuth(); // usar sessão já carregada
-    const [exercises, setExercises] = useState<Exercise[]>([]);
+    const [exercises, setExercises] = useState<ExerciseInterface[]>([]);
+    const [classrooms, setClassrooms] = useState<ClassroomInterface[]>([]);
     const [loading, setLoading] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -73,8 +66,10 @@ export default function Exercicios() {
     const fetchExercises = async () => {
         try {
             setLoading(true);
-            const data: Exercise[] = await get('/exercise');
+            const data: ExerciseInterface[] = await get('/exercise');
+            const data2: ClassroomInterface[] = await get('/classroom');
             setExercises(data);
+            setClassrooms(data2);
         } catch (e: any) {
             Alert.alert('Erro', e.message || 'Erro ao carregar exercícios');
         } finally {
@@ -110,7 +105,7 @@ export default function Exercicios() {
             answer: form.answer,
             options: form.options,
             authorId: userId,
-            classroomId: form.classroomId ? parseInt(form.classroomId) : undefined,
+            classroomId: form.classroomId ? form.classroomId : '',
         };
 
         try {
@@ -129,7 +124,7 @@ export default function Exercicios() {
         }
     };
 
-    const handleEdit = (exercise: Exercise) => {
+    const handleEdit = (exercise: ExerciseInterface) => {
         setForm({
             question: exercise.question,
             theme: exercise.theme,
@@ -321,14 +316,23 @@ export default function Exercicios() {
                             </View>
 
                             <Text style={[styles.label, { color: textColor }]}>ID da Turma (opcional)</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                                placeholder="ID da turma"
-                                placeholderTextColor="#9CA3AF"
-                                value={form.classroomId}
-                                onChangeText={(text) => setForm({ ...form, classroomId: text })}
-                                keyboardType="numeric"
-                            />
+                            <View style={[styles.pickerContainer, { backgroundColor: inputBg }]}>
+                                <Picker
+                                    selectedValue={form.classroomId}
+                                    onValueChange={(itemValue) => setForm({ ...form, classroomId: itemValue })}
+                                    style={[styles.picker, { color: textColor }]}
+                                    dropdownIconColor={textColor}
+                                >
+                                    <Picker.Item label="Selecione uma turma" value="" color="#9CA3AF" />
+                                    {classrooms.map((classroom) => (
+                                        <Picker.Item
+                                            key={classroom.id}
+                                            label={classroom.name}
+                                            value={classroom.id.toString()}
+                                        />
+                                    ))}
+                                </Picker>
+                            </View>
 
                             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                                 <Text style={styles.saveButtonText}>
@@ -421,6 +425,16 @@ const styles = StyleSheet.create({
         padding: 12,
         marginBottom: 16,
         fontSize: 14,
+    },
+
+    pickerContainer: {
+        borderRadius: 8,
+        marginBottom: 16,
+        overflow: 'hidden',
+    },
+    picker: {
+        height: 50,
+        width: '100%',
     },
 
     answerContainer: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },

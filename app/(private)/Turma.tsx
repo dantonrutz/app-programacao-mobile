@@ -24,6 +24,8 @@ interface Classroom {
   name: string;
   code: string;
   teacherId: string;
+  myPosition: number;
+  myScore: number;
 }
 
 interface Ranking {
@@ -69,7 +71,6 @@ export default function Turma() {
     try {
       setLoading(true);
 
-      // 1. Buscar todos os rankings do usuário
       const allRankings: Ranking[] = await get('/ranking');
       const userRankings = allRankings.filter(r => r.userId === userId);
 
@@ -78,16 +79,22 @@ export default function Turma() {
         return;
       }
 
-      // 2. Buscar todas as turmas
       const allClassrooms: Classroom[] = await get('/classroom');
 
-      // 3. Filtrar turmas que o usuário está vinculado
-      const classroomIds = userRankings.map(r => r.classroomId);
-      const myClassrooms = allClassrooms.filter(c => classroomIds.includes(c.id));
+      const myClassrooms = allClassrooms
+        .filter(c => userRankings.map(r => r.classroomId).includes(c.id))
+        .map(c => {
+          const rank = userRankings.find(r => r.classroomId === c.id);
+          return {
+            ...c,
+            myPosition: rank?.position ?? 0,
+            myScore: rank?.score ?? 0,
+          };
+        });
 
       setMyClassrooms(myClassrooms);
-    } catch (e: any) {
-      console.log('Erro ao carregar turmas:', e?.message ?? e);
+    } catch (e) {
+      console.log('Erro ao carregar turmas:', e);
       setMyClassrooms([]);
     } finally {
       setLoading(false);
@@ -199,8 +206,12 @@ export default function Turma() {
                 <Ionicons name="checkmark-circle" size={32} color="#10B981" />
               </View>
 
-              <Text style={[styles.enrolledText, { color: '#10B981' }]}>
-                ✓ Você está registrado
+              <Text style={{ color: textColor, fontSize: 15, marginTop: 4 }}>
+                🥇 Sua posição: {item.myPosition}º lugar
+              </Text>
+
+              <Text style={{ color: textColor, fontSize: 14, marginTop: 2 }}>
+                ⭐ Pontos: {item.myScore}
               </Text>
             </View>
           )}

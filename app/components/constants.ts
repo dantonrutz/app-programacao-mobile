@@ -1,1 +1,1 @@
-export const BACKEND_URL = 'http://192.168.0.115:3000'; // Altere para o IP do seu servidor backend
+export const BACKEND_URL = 'http://192.168.68.109:3000'; // Altere para o IP do seu servidor backend
