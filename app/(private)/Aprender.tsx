@@ -1,45 +1,58 @@
+import { useApi } from '@/hooks/useApi';
+import { ClassroomInterface } from '@/types/Classroom';
 import { ExerciseInterface } from '@/types/Exercise';
 import { Ionicons } from '@expo/vector-icons';
+import { Picker } from '@react-native-picker/picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-const lessons: ExerciseInterface[] = [
-  {
-    id: '1',
-    title: 'Números Naturais',
-    description: 'Aprenda sobre números positivos inteiros',
-    status: 'completed',
-    icon: 'calculator',
-    difficulty: 1,
-  },
-  {
-    id: '2',
-    title: 'Operações Básicas',
-    description: 'Adição e subtração simples',
-    status: 'available',
-    icon: 'add-circle',
-    difficulty: 1,
-  },
-  {
-    id: '3',
-    title: 'Multiplicação',
-    description: 'Multiplicação e suas propriedades',
-    status: 'locked',
-    icon: 'close-circle',
-    difficulty: 2,
-  },
-  {
-    id: '4',
-    title: 'Divisão',
-    description: 'Divisão e números decimais',
-    status: 'locked',
-    icon: 'remove-circle',
-    difficulty: 2,
-  },
-];
-
 export default function Aprender() {
+  const [lessons, setLessons] = useState<ExerciseInterface[]>([]);
+  const [classrooms, setClassrooms] = useState<ClassroomInterface[]>([]);
+  const [selectedClassroom, setSelectedClassroom] = useState<string>('');
+  const { get } = useApi();
+
+  useEffect(() => {
+    const fetchClassrooms = async () => {
+      try {
+        const data: ClassroomInterface[] = await get('/classroom');
+        setClassrooms(data);
+        if (data.length > 0 && !selectedClassroom) {
+          setSelectedClassroom(data[0].id.toString());
+        }
+      } catch (e: any) {
+        console.error('Erro ao carregar as turmas:', e.message || e);
+      }
+    };
+
+    fetchClassrooms();
+  }, [get, selectedClassroom]);
+
+  useEffect(() => {
+    const fetchLessons = async () => {
+      try {
+        if (selectedClassroom) {
+          const data: ExerciseInterface[] = await get(`/exercise/student?classroomId=${selectedClassroom}`);
+          const formattedData = data.map((lesson) => ({
+            ...lesson,
+            status: lesson.status || 'available', // Default to 'available' if status is missing
+            difficulty: lesson.difficulty || 1, // Default difficulty if missing
+          }));
+          const sortedData = formattedData.sort((a, b) => a.difficulty - b.difficulty); // Sort by difficulty
+          setLessons(sortedData);
+        } else {
+          setLessons([]); // Clear lessons if no classroom is selected
+        }
+      } catch (e: any) {
+        console.error('Erro ao carregar as lições:', e.message || e);
+      }
+    };
+
+    fetchLessons();
+  }, [get, selectedClassroom]);
+
   const renderDifficultyStars = (difficulty: number) => {
     return [...Array(difficulty)].map((_, i) => (
       <Ionicons key={i} name="star" size={16} color="#FCD34D" />
@@ -48,16 +61,28 @@ export default function Aprender() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
+      <ScrollView style={styles.content} contentContainerStyle={{ flexGrow: 1 }}>
         <LinearGradient
           colors={['#3B82F6', '#7C3AED']}
-          style={styles.gradient}
+          style={[styles.gradient, { flex: 1 }]}
         >
           <View style={styles.header}>
-            <Text style={styles.greeting}>Jornada Matemática</Text>
+            <Text style={styles.greeting}>Jornada de aprendizagem</Text>
             <Text style={styles.subtitle}>Continue sua aventura!</Text>
           </View>
-          <View style={styles.pathContainer}>
+          <View style={[styles.pathContainer, { flex: 1 }]}>
+            <Text style={styles.subtitle}>Selecione sua turma:</Text>
+            <View style={styles.pickerContainer}>
+              <Picker
+                selectedValue={selectedClassroom}
+                onValueChange={(itemValue) => setSelectedClassroom(itemValue)}
+                style={styles.picker}
+              >
+                {classrooms.map((classroom) => (
+                  <Picker.Item key={classroom.id} label={classroom.name} value={classroom.id.toString()} />
+                ))}
+              </Picker>
+            </View>
             {lessons.map((lesson, index) => (
               <View key={lesson.id} style={styles.lessonWrapper}>
                 {index > 0 && <View style={styles.connector} />}
@@ -65,39 +90,49 @@ export default function Aprender() {
                 <TouchableOpacity
                   style={[
                     styles.lessonCard,
-                    lesson.status === 'locked' && styles.lockedLesson,
-                    lesson.status === 'completed' && styles.completedLesson,
+                    lesson.status === 'bloqueado' && styles.lockedLesson,
+                    lesson.status === 'correto' && styles.correctLesson,
+                    lesson.status === 'errado' && styles.wrongLesson,
                   ]}
-                  disabled={lesson.status === 'locked'}
+                  disabled={lesson.status === 'bloqueado'}
                   onPress={() =>
                     router.push({
                       pathname: '/exercicios/[id]',
-                      params: { id: lesson.id },
+                      params: { id: lesson.id }, // Ensure the ID is passed correctly
                     })
                   }
                 >
-
                   <View style={styles.iconContainer}>
                     <Ionicons
-                      name={lesson.status === 'locked' ? 'lock-closed' : lesson.icon}
+                      name={
+                        lesson.status === 'bloqueado'
+                          ? 'lock-closed'
+                          : lesson.status === 'correto'
+                            ? 'checkmark-circle'
+                            : lesson.status === 'errado'
+                              ? 'close-circle'
+                              : 'navigate' // Default icon for 'liberado'
+                      }
                       size={28}
-                      color={lesson.status === 'locked' ? '#9CA3AF' : '#FFFFFF'}
+                      color={
+                        lesson.status === 'bloqueado'
+                          ? '#9CA3AF'
+                          : lesson.status === 'correto'
+                            ? '#FFFFFF'
+                            : lesson.status === 'errado'
+                              ? '#FFFFFF'
+                              : '#FFFFFF' // Default color for 'liberado'
+                      }
                     />
                   </View>
 
                   <View style={styles.lessonInfo}>
-                    <Text style={styles.lessonTitle}>{lesson.title}</Text>
-                    <Text style={styles.lessonDescription}>{lesson.description}</Text>
+                    <Text style={styles.lessonTitle}>{lesson.question}</Text>
+                    <Text style={styles.lessonDescription}>{lesson.theme}</Text>
                     <View style={styles.difficultyContainer}>
                       {renderDifficultyStars(lesson.difficulty)}
                     </View>
                   </View>
-
-                  {lesson.status === 'completed' && (
-                    <View style={styles.completedBadge}>
-                      <Ionicons name="checkmark-circle" size={24} color="#10B981" />
-                    </View>
-                  )}
                 </TouchableOpacity>
               </View>
             ))}
@@ -121,7 +156,8 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   greeting: {
-    fontSize: 32,
+    marginTop: 12,
+    fontSize: 23,
     fontWeight: 'bold',
     color: '#FFFFFF',
     marginBottom: 8,
@@ -154,8 +190,13 @@ const styles = StyleSheet.create({
   lockedLesson: {
     opacity: 0.5,
   },
-  completedLesson: {
-    backgroundColor: 'rgba(255, 255, 255, 0.25)',
+  correctLesson: {
+    backgroundColor: '#10B981', // Green background for correct
+    opacity: 0.8, // Add opacity for a softer look
+  },
+  wrongLesson: {
+    backgroundColor: '#EF4444', // Red background for wrong
+    opacity: 0.8, // Add opacity for a softer look
   },
   iconContainer: {
     width: 50,
@@ -194,5 +235,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#FFFFFF',
     opacity: 0.9,
+  },
+  pickerContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    borderRadius: 12,
+    marginBottom: 16,
+    marginTop: 4
+  },
+  picker: {
+    height: 50,
+    color: '#FFFFFF',
   },
 });

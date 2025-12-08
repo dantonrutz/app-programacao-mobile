@@ -5,5 +5,7 @@ export interface ExerciseInterface {
     answer: string;
     theme: string;
     authorId: string;
-    classroomId?: number;
+    difficulty: number;
+    status: 'liberado' | 'bloqueado' | 'correto' | 'errado';
+    classroomId?: string;
 }

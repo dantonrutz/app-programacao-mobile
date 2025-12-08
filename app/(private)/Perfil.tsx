@@ -45,7 +45,9 @@ export default function Perfil() {
           <Text style={styles.email}>{user?.email || '-'}</Text>
           <View style={styles.roleContainer}>
             <Text style={styles.roleLabel}>Funções do usuário</Text>
-            <Text style={styles.roles}>{user?.roles.join(', ') || '-'}</Text>
+            <Text style={styles.roles}>
+              {user?.roles.map(role => role === 'TEACHER' ? 'Professor' : role === 'STUDENT' ? 'Estudante' : role).join(', ') || '-'}
+            </Text>
           </View>
         </View>
 

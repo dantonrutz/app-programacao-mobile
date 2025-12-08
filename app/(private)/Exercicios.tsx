@@ -31,6 +31,7 @@ export default function Exercicios() {
     const [modalVisible, setModalVisible] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [userId, setUserId] = useState<string>('');
+    const [difficulty, setDifficulty] = useState<number>(0);
 
     // Form state
     const [form, setForm] = useState({
@@ -86,6 +87,7 @@ export default function Exercicios() {
             classroomId: '',
         });
         setEditingId(null);
+        setDifficulty(0);
     };
 
     const handleSave = async () => {
@@ -105,6 +107,7 @@ export default function Exercicios() {
             answer: form.answer,
             options: form.options,
             authorId: userId,
+            difficulty,
             classroomId: form.classroomId ? form.classroomId : '',
         };
 
@@ -132,6 +135,7 @@ export default function Exercicios() {
             options: exercise.options,
             classroomId: exercise.classroomId?.toString() || '',
         });
+        setDifficulty(exercise.difficulty || 0);
         setEditingId(exercise.id);
         setModalVisible(true);
     };
@@ -153,6 +157,25 @@ export default function Exercicios() {
                 },
             },
         ]);
+    };
+
+    const renderStars = () => {
+        return Array.from({ length: 5 }, (_, index) => {
+            const starIndex = index + 1;
+            return (
+                <TouchableOpacity
+                    key={starIndex}
+                    onPress={() => setDifficulty(starIndex)}
+                    activeOpacity={0.7}
+                >
+                    <Ionicons
+                        name="star"
+                        size={32}
+                        color={starIndex <= difficulty ? '#FCD34D' : '#E5E7EB'}
+                    />
+                </TouchableOpacity>
+            );
+        });
     };
 
     const backgroundColor = theme === 'dark' ? '#1F2937' : '#F3F4F6';
@@ -193,8 +216,24 @@ export default function Exercicios() {
                                     <Text style={[styles.cardTitle, { color: textColor }]} numberOfLines={2}>
                                         {item.question}
                                     </Text>
-                                    <View style={styles.themeBadge}>
-                                        <Text style={styles.themeBadgeText}>{item.theme}</Text>
+                                    <View style={styles.themeBadgeContainer}>
+                                        <View style={styles.themeBadge}>
+                                            <Text style={styles.themeBadgeText}>{item.theme}</Text>
+                                        </View>
+                                        <View style={{ flexDirection: 'row', marginLeft: 8 }}>
+                                            {Array.from({ length: 5 }, (_, index) => {
+                                                const starIndex = index + 1;
+                                                return (
+                                                    <Ionicons
+                                                        key={starIndex}
+                                                        name="star"
+                                                        size={16}
+                                                        color={starIndex <= item.difficulty ? '#FCD34D' : '#E5E7EB'}
+                                                        style={{ marginHorizontal: 2 }}
+                                                    />
+                                                );
+                                            })}
+                                        </View>
                                     </View>
                                 </View>
                                 <View style={styles.cardActions}>
@@ -290,7 +329,7 @@ export default function Exercicios() {
                                 </View>
                             ))}
 
-                            <Text style={[styles.label, { color: textColor }]}>Resposta Correta *</Text>
+                            <Text style={[styles.label, { color: textColor }]}>Resposta correta *</Text>
                             <View style={styles.answerContainer}>
                                 {form.options.map((opt, idx) => (
                                     opt.trim() && (
@@ -315,6 +354,9 @@ export default function Exercicios() {
                                 ))}
                             </View>
 
+                            <Text style={[styles.label, { color: textColor }]}>Dificuldade *</Text>
+                            <View style={styles.starsContainer}>{renderStars()}</View>
+
                             <Text style={[styles.label, { color: textColor }]}>ID da Turma (opcional)</Text>
                             <View style={[styles.pickerContainer, { backgroundColor: inputBg }]}>
                                 <Picker
@@ -333,6 +375,8 @@ export default function Exercicios() {
                                     ))}
                                 </Picker>
                             </View>
+
+
 
                             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                                 <Text style={styles.saveButtonText}>
@@ -380,6 +424,7 @@ const styles = StyleSheet.create({
     cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
     titleContainer: { flex: 1, marginRight: 12 },
     cardTitle: { fontSize: 16, fontWeight: '600', marginBottom: 8 },
+    themeBadgeContainer: { flexDirection: 'row', alignItems: 'center' },
     themeBadge: { backgroundColor: '#E0F2FE', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, alignSelf: 'flex-start' },
     themeBadgeText: { fontSize: 12, color: '#0369A1', fontWeight: '500' },
 
@@ -450,6 +495,10 @@ const styles = StyleSheet.create({
     answerOptionText: { fontSize: 12, color: '#6B7280' },
     answerOptionTextActive: { color: '#059669', fontWeight: '600' },
 
+    starsContainer: {
+        flexDirection: 'row',
+        marginBottom: 28,
+    },
     saveButton: {
         backgroundColor: '#10B981',
         paddingVertical: 14,
