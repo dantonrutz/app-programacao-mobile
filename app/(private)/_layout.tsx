@@ -13,8 +13,9 @@ import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
 const MENU_ITEMS = [
   { label: "Início", route: "/Inicio", icon: "home", key: "home", colors: ['#3B82F6', '#3B82F6'], studentOnly: true },
   { label: "Aprender", route: "/Aprender", icon: "book", key: "aprender", colors: ['#7C3AED', '#7C3AED'], studentOnly: true },
+  { label: "Ranking", route: "/Ranking", icon: "bar-chart", key: "ranking", colors: ['#F59E0B', '#F97316'] }, // <-- ADICIONADO
   { label: "Turma", route: "/Turma", icon: "trophy", key: "turma", colors: ['#EC4899', '#EC4899'] },
-  { label: "Loja", route: "/Loja", icon: "bag", key: "loja", colors: ['#FCD34D', '#FCD34D'], studentOnly: true },
+  // { label: "Loja", route: "/Loja", icon: "bag", key: "loja", colors: ['#FCD34D', '#FCD34D'], studentOnly: true },
   { label: "Exercícios", route: "/Exercicios", icon: "pencil", key: "exercicios", teacherOnly: true, colors: ['#10B981', '#10B981'] },
   { label: "Perfil", route: "/Perfil", icon: "person", key: "perfil", colors: ['#F87171', '#F87171'] },
 ];

@@ -3,9 +3,10 @@ import { ClassroomInterface } from '@/types/Classroom';
 import { ExerciseInterface } from '@/types/Exercise';
 import { Ionicons } from '@expo/vector-icons';
 import { Picker } from '@react-native-picker/picker';
+import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { SafeAreaView, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function Aprender() {
@@ -14,6 +15,7 @@ export default function Aprender() {
   const [selectedClassroom, setSelectedClassroom] = useState<string>('');
   const { get } = useApi();
 
+  // fetch classrooms (mount)
   useEffect(() => {
     const fetchClassrooms = async () => {
       try {
@@ -28,30 +30,40 @@ export default function Aprender() {
     };
 
     fetchClassrooms();
-  }, [get, selectedClassroom]);
+  }, [get]);
 
-  useEffect(() => {
-    const fetchLessons = async () => {
-      try {
-        if (selectedClassroom) {
-          const data: ExerciseInterface[] = await get(`/exercise/student?classroomId=${selectedClassroom}`);
-          const formattedData = data.map((lesson) => ({
-            ...lesson,
-            status: lesson.status || 'available', // Default to 'available' if status is missing
-            difficulty: lesson.difficulty || 1, // Default difficulty if missing
-          }));
-          const sortedData = formattedData.sort((a, b) => a.difficulty - b.difficulty); // Sort by difficulty
-          setLessons(sortedData);
-        } else {
-          setLessons([]); // Clear lessons if no classroom is selected
-        }
-      } catch (e: any) {
-        console.error('Erro ao carregar as lições:', e.message || e);
+  // centralized fetchLessons to be reused
+  const fetchLessons = useCallback(async () => {
+    try {
+      if (selectedClassroom) {
+        const data: ExerciseInterface[] = await get(`/exercise/student?classroomId=${selectedClassroom}`);
+        const formattedData = data.map((lesson) => ({
+          ...lesson,
+          status: lesson.status || 'available',
+          difficulty: lesson.difficulty || 1,
+        }));
+        const sortedData = formattedData.sort((a, b) => a.difficulty - b.difficulty);
+        setLessons(sortedData);
+      } else {
+        setLessons([]);
       }
-    };
-
-    fetchLessons();
+    } catch (e: any) {
+      console.error('Erro ao carregar as lições:', e.message || e);
+    }
   }, [get, selectedClassroom]);
+
+  // run when selectedClassroom changes (initial selection) and on mount
+  useEffect(() => {
+    fetchLessons();
+  }, [fetchLessons]);
+
+  // refetch when screen gains focus (e.g. after answering question)
+  useFocusEffect(
+    useCallback(() => {
+      fetchLessons();
+      // no cleanup needed
+    }, [fetchLessons])
+  );
 
   const renderDifficultyStars = (difficulty: number) => {
     return [...Array(difficulty)].map((_, i) => (

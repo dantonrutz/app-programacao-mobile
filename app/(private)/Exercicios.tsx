@@ -21,6 +21,22 @@ import {
     View,
 } from 'react-native';
 
+const THEMES = [
+    'Matemática',
+    'Ciências',
+    'Português',
+    'Inglês',
+    'Filosofia',
+    'Sociologia',
+    'História',
+    'Geografia',
+    'Educação Física',
+    'Artes',
+    'Química',
+    'Física',
+    'Biologia',
+];
+
 export default function Exercicios() {
     const { post, get, put, delete: deleteExercise } = useApi();
     const { theme } = useTheme();
@@ -304,13 +320,19 @@ export default function Exercicios() {
                             />
 
                             <Text style={[styles.label, { color: textColor }]}>Tema *</Text>
-                            <TextInput
-                                style={[styles.input, { backgroundColor: inputBg, color: textColor }]}
-                                placeholder="Ex: Matemática, Português..."
-                                placeholderTextColor="#9CA3AF"
-                                value={form.theme}
-                                onChangeText={(text) => setForm({ ...form, theme: text })}
-                            />
+                            <View style={[styles.pickerContainer, { backgroundColor: inputBg }]}>
+                                <Picker
+                                    selectedValue={form.theme}
+                                    onValueChange={(itemValue) => setForm({ ...form, theme: itemValue })}
+                                    style={[styles.picker, { color: textColor }]}
+                                    dropdownIconColor={textColor}
+                                >
+                                    <Picker.Item label="Selecione um tema" value="" color="#9CA3AF" />
+                                    {THEMES.map((theme) => (
+                                        <Picker.Item key={theme} label={theme} value={theme} />
+                                    ))}
+                                </Picker>
+                            </View>
 
                             <Text style={[styles.label, { color: textColor }]}>Opções *</Text>
                             {form.options.map((opt, idx) => (
@@ -375,8 +397,6 @@ export default function Exercicios() {
                                     ))}
                                 </Picker>
                             </View>
-
-
 
                             <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
                                 <Text style={styles.saveButtonText}>
